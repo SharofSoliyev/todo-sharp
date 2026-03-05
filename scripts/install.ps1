@@ -31,7 +31,8 @@ Write-Host ""
 
 # Build
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$projectFile = Join-Path $scriptDir "TodoBot.csproj"
+$repoRoot = Split-Path -Parent $scriptDir
+$projectFile = Join-Path $repoRoot "src" "TodoBot.csproj"
 
 if (-not (Test-Path $projectFile)) {
     Write-Host "[ERROR] TodoBot.csproj topilmadi!" -ForegroundColor Red

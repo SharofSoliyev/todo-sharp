@@ -34,7 +34,8 @@ esac
 
 INSTALL_DIR="$HOME/.todobot"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_FILE="$SCRIPT_DIR/TodoBot.csproj"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_FILE="$REPO_ROOT/src/TodoBot.csproj"
 
 echo "[INFO] OS: $OS_NAME"
 echo "[INFO] Install dir: $INSTALL_DIR"
