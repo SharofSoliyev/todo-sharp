@@ -2,6 +2,36 @@
 
 Telegram To-Do bot — C# (.NET 8.0), SQLite, inline keyboard bilan boshqariladigan vazifalar boti.
 
+## Tezkor o'rnatish
+
+```bash
+git clone https://github.com/SharofSoliyev/todo-sharp.git
+cd todo-sharp
+```
+
+**Windows** — `setup.cmd` ni ikki marta bosing yoki:
+```powershell
+.\setup.cmd
+```
+
+**Linux / macOS:**
+```bash
+chmod +x setup.sh && ./setup.sh
+```
+
+Hamma narsa avtomatik: .NET SDK, build, token so'rash, bot ishga tushirish.
+
+## Boshqarish
+
+```bash
+todosharp start     # Fonda ishga tushirish
+todosharp stop      # To'xtatish
+todosharp restart   # Qayta ishga tushirish
+todosharp status    # Holatni ko'rish
+todosharp log       # Loglarni ko'rish
+todosharp run       # Terminal rejimida ishga tushirish
+```
+
 ## Funksionallik
 
 - **Vazifalar** — qo'shish, tahrirlash, o'chirish, bajarish
@@ -33,35 +63,10 @@ todo-sharp/
 ├── scripts/
 │   ├── install.ps1                # Windows/macOS/Linux installer (PowerShell)
 │   └── install.sh                 # Linux/macOS installer (Bash)
+├── setup.cmd                      # Windows: bir bosish bilan o'rnatish
+├── setup.sh                       # Linux/macOS: bir buyruq bilan o'rnatish
 ├── LICENSE
 └── README.md
-```
-
-## O'rnatish
-
-**.NET 8.0 SDK** kerak: https://dotnet.microsoft.com/download
-
-### Windows
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/install.ps1
-```
-
-### Linux / macOS
-```bash
-chmod +x scripts/install.sh && ./scripts/install.sh
-```
-
-Install vaqtida bot token so'raladi va avtomatik ishga tushadi.
-
-## Boshqarish
-
-```bash
-todosharp start     # Botni fonda ishga tushirish
-todosharp stop      # To'xtatish
-todosharp restart   # Qayta ishga tushirish
-todosharp status    # Holatni ko'rish
-todosharp log       # Loglarni ko'rish
-todosharp run       # Terminal rejimida ishga tushirish
 ```
 
 ## Texnologiyalar

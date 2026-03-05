@@ -12,15 +12,80 @@ Write-Host "     Windows / macOS / Linux" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
 
-# dotnet tekshirish
+# dotnet tekshirish va kerak bo'lsa o'rnatish
 $dotnetVersion = $null
 try { $dotnetVersion = & dotnet --version 2>$null } catch {}
 if (-not $dotnetVersion) {
-    Write-Host "[ERROR] .NET SDK topilmadi!" -ForegroundColor Red
-    Write-Host "  https://dotnet.microsoft.com/download" -ForegroundColor Yellow
-    exit 1
+    Write-Host "[!] .NET SDK topilmadi - avtomatik o'rnatilmoqda..." -ForegroundColor Yellow
+    Write-Host ""
+
+    if ($env:OS -eq "Windows_NT") {
+        # Windows: winget orqali o'rnatish
+        $hasWinget = $null
+        try { $hasWinget = & winget --version 2>$null } catch {}
+
+        if ($hasWinget) {
+            Write-Host "    winget orqali .NET 8 SDK o'rnatilmoqda..." -ForegroundColor Cyan
+            & winget install Microsoft.DotNet.SDK.8 --accept-source-agreements --accept-package-agreements
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "[ERROR] .NET SDK o'rnatilmadi!" -ForegroundColor Red
+                Write-Host "  Qo'lda o'rnating: https://dotnet.microsoft.com/download" -ForegroundColor Yellow
+                exit 1
+            }
+        } else {
+            # winget yo'q - dotnet-install.ps1 skripti orqali
+            Write-Host "    dotnet-install skripti orqali o'rnatilmoqda..." -ForegroundColor Cyan
+            $installScript = Join-Path $env:TEMP "dotnet-install.ps1"
+            try {
+                [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+                Invoke-WebRequest -Uri "https://dot.net/v1/dotnet-install.ps1" -OutFile $installScript -UseBasicParsing
+                & powershell -ExecutionPolicy Bypass -File $installScript -Channel 8.0
+            } catch {
+                Write-Host "[ERROR] .NET SDK yuklab olinmadi!" -ForegroundColor Red
+                Write-Host "  Qo'lda o'rnating: https://dotnet.microsoft.com/download" -ForegroundColor Yellow
+                exit 1
+            }
+        }
+
+        # PATH yangilash (joriy sessiya uchun)
+        $dotnetPaths = @(
+            (Join-Path $env:LOCALAPPDATA "Microsoft\dotnet"),
+            (Join-Path $env:ProgramFiles "dotnet"),
+            (Join-Path $HOME ".dotnet")
+        )
+        foreach ($p in $dotnetPaths) {
+            if ((Test-Path (Join-Path $p "dotnet.exe")) -and ($env:PATH -notlike "*$p*")) {
+                $env:PATH = "$p;$env:PATH"
+            }
+        }
+    } else {
+        # macOS / Linux: dotnet-install.sh skripti
+        Write-Host "    dotnet-install skripti orqali o'rnatilmoqda..." -ForegroundColor Cyan
+        try {
+            & bash -c "curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 8.0"
+        } catch {
+            Write-Host "[ERROR] .NET SDK o'rnatilmadi!" -ForegroundColor Red
+            exit 1
+        }
+        $dotnetHome = Join-Path $HOME ".dotnet"
+        if ($env:PATH -notlike "*$dotnetHome*") {
+            $env:PATH = "${dotnetHome}:$env:PATH"
+        }
+    }
+
+    # Qayta tekshirish
+    $dotnetVersion = $null
+    try { $dotnetVersion = & dotnet --version 2>$null } catch {}
+    if (-not $dotnetVersion) {
+        Write-Host "[ERROR] .NET SDK o'rnatilmadi yoki PATH da topilmadi!" -ForegroundColor Red
+        Write-Host "  Qo'lda o'rnating: https://dotnet.microsoft.com/download" -ForegroundColor Yellow
+        exit 1
+    }
+    Write-Host ""
+    Write-Host "[OK] .NET SDK o'rnatildi: $dotnetVersion" -ForegroundColor Green
+} else {
+    Write-Host "[OK] .NET SDK: $dotnetVersion" -ForegroundColor Green
 }
-Write-Host "[OK] .NET SDK: $dotnetVersion" -ForegroundColor Green
 
 # OS aniqlash
 $osIsWindows = ($env:OS -eq "Windows_NT")

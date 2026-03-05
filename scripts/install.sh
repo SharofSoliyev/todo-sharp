@@ -11,18 +11,51 @@ echo "     Linux / macOS"
 echo "======================================"
 echo ""
 
-# dotnet tekshirish
+# dotnet tekshirish va kerak bo'lsa o'rnatish
 if ! command -v dotnet &> /dev/null; then
-    echo "[ERROR] .NET SDK topilmadi!"
-    echo "   https://dotnet.microsoft.com/download dan yuklab o'rnating."
+    echo "[!] .NET SDK topilmadi - avtomatik o'rnatilmoqda..."
     echo ""
-    echo "   Tezkor o'rnatish:"
-    echo "   curl -sSL https://dot.net/v1/dotnet-install.sh | bash"
-    exit 1
-fi
 
-DOTNET_VERSION=$(dotnet --version)
-echo "[OK] .NET SDK topildi: $DOTNET_VERSION"
+    # Rasmiy dotnet-install.sh skripti orqali
+    echo "    .NET 8.0 SDK yuklanmoqda..."
+    curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
+    bash /tmp/dotnet-install.sh --channel 8.0
+    rm -f /tmp/dotnet-install.sh
+
+    # PATH ga qo'shish (joriy sessiya uchun)
+    export DOTNET_ROOT="$HOME/.dotnet"
+    export PATH="$DOTNET_ROOT:$PATH"
+
+    # Shell RC ga ham yozish
+    SHELL_RC_FILE=""
+    if [ -f "$HOME/.zshrc" ]; then
+        SHELL_RC_FILE="$HOME/.zshrc"
+    elif [ -f "$HOME/.bashrc" ]; then
+        SHELL_RC_FILE="$HOME/.bashrc"
+    fi
+
+    if [ -n "$SHELL_RC_FILE" ]; then
+        if ! grep -q "DOTNET_ROOT" "$SHELL_RC_FILE" 2>/dev/null; then
+            echo '' >> "$SHELL_RC_FILE"
+            echo '# .NET SDK' >> "$SHELL_RC_FILE"
+            echo 'export DOTNET_ROOT="$HOME/.dotnet"' >> "$SHELL_RC_FILE"
+            echo 'export PATH="$DOTNET_ROOT:$PATH"' >> "$SHELL_RC_FILE"
+            echo "[OK] .NET PATH qoshildi: $SHELL_RC_FILE"
+        fi
+    fi
+
+    # Tekshirish
+    if ! command -v dotnet &> /dev/null; then
+        echo "[ERROR] .NET SDK o'rnatilmadi!"
+        echo "   Qo'lda o'rnating: https://dotnet.microsoft.com/download"
+        exit 1
+    fi
+
+    echo ""
+    echo "[OK] .NET SDK o'rnatildi: $(dotnet --version)"
+else
+    echo "[OK] .NET SDK topildi: $(dotnet --version)"
+fi
 
 # OS aniqlash
 OS="$(uname -s)"
