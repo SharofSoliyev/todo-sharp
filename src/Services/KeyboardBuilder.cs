@@ -213,6 +213,103 @@ public static class KeyboardBuilder
         });
     }
 
+    private static readonly string[] UzMonths = { "", "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+                                                       "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr" };
+
+    public static InlineKeyboardMarkup Calendar(DateTime month)
+    {
+        var buttons = new List<InlineKeyboardButton[]>();
+        var today = DateTime.UtcNow.Date;
+
+        var prevMonth = month.AddMonths(-1);
+        var nextMonth = month.AddMonths(1);
+
+        // Header: ◀️ Mart 2026 ▶️
+        buttons.Add(new[]
+        {
+            InlineKeyboardButton.WithCallbackData("◀️", $"calprev_{prevMonth:yyyy-MM}"),
+            InlineKeyboardButton.WithCallbackData($"📅 {UzMonths[month.Month]} {month.Year}", "cal_noop"),
+            InlineKeyboardButton.WithCallbackData("▶️", $"calnext_{nextMonth:yyyy-MM}"),
+        });
+
+        // Day-of-week headers (Uzbek week starts Monday)
+        buttons.Add(new[]
+        {
+            InlineKeyboardButton.WithCallbackData("Du", "cal_noop"),
+            InlineKeyboardButton.WithCallbackData("Se", "cal_noop"),
+            InlineKeyboardButton.WithCallbackData("Ch", "cal_noop"),
+            InlineKeyboardButton.WithCallbackData("Pa", "cal_noop"),
+            InlineKeyboardButton.WithCallbackData("Ju", "cal_noop"),
+            InlineKeyboardButton.WithCallbackData("Sh", "cal_noop"),
+            InlineKeyboardButton.WithCallbackData("Ya", "cal_noop"),
+        });
+
+        // Days grid
+        var firstDay = new DateTime(month.Year, month.Month, 1);
+        var daysInMonth = DateTime.DaysInMonth(month.Year, month.Month);
+        var startOffset = ((int)firstDay.DayOfWeek + 6) % 7; // Mon=0, Sun=6
+
+        var row = new List<InlineKeyboardButton>();
+
+        for (int i = 0; i < startOffset; i++)
+            row.Add(InlineKeyboardButton.WithCallbackData(" ", "cal_noop"));
+
+        for (int day = 1; day <= daysInMonth; day++)
+        {
+            var date = new DateTime(month.Year, month.Month, day);
+            var dateStr = date.ToString("yyyy-MM-dd");
+
+            if (date.Date == today)
+                row.Add(InlineKeyboardButton.WithCallbackData($"•{day}•", $"calpick_{dateStr}"));
+            else if (date < today)
+                row.Add(InlineKeyboardButton.WithCallbackData($"  ", "cal_noop"));
+            else
+                row.Add(InlineKeyboardButton.WithCallbackData($"{day}", $"calpick_{dateStr}"));
+
+            if (row.Count == 7)
+            {
+                buttons.Add(row.ToArray());
+                row = new List<InlineKeyboardButton>();
+            }
+        }
+
+        while (row.Count > 0 && row.Count < 7)
+            row.Add(InlineKeyboardButton.WithCallbackData(" ", "cal_noop"));
+        if (row.Count > 0)
+            buttons.Add(row.ToArray());
+
+        // Skip button
+        buttons.Add(new[]
+        {
+            InlineKeyboardButton.WithCallbackData("⏭ O'tkazib yuborish", "skip_due"),
+        });
+
+        return new InlineKeyboardMarkup(buttons);
+    }
+
+    public static InlineKeyboardMarkup TimePicker(string dateStr)
+    {
+        return new InlineKeyboardMarkup(new[]
+        {
+            new[]
+            {
+                InlineKeyboardButton.WithCallbackData("09:00", $"caltime_{dateStr}_0900"),
+                InlineKeyboardButton.WithCallbackData("12:00", $"caltime_{dateStr}_1200"),
+                InlineKeyboardButton.WithCallbackData("15:00", $"caltime_{dateStr}_1500"),
+            },
+            new[]
+            {
+                InlineKeyboardButton.WithCallbackData("18:00", $"caltime_{dateStr}_1800"),
+                InlineKeyboardButton.WithCallbackData("21:00", $"caltime_{dateStr}_2100"),
+                InlineKeyboardButton.WithCallbackData("23:59", $"caltime_{dateStr}_2359"),
+            },
+            new[]
+            {
+                InlineKeyboardButton.WithCallbackData("⏭ Vaqtsiz", $"caltime_{dateStr}_none"),
+            }
+        });
+    }
+
     public static InlineKeyboardMarkup StatsMenu()
     {
         return new InlineKeyboardMarkup(new[]

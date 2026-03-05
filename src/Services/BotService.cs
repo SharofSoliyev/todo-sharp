@@ -448,9 +448,9 @@ public class BotService
             state.State = BotState.WaitingForDueDate;
             state.EditingTaskId = taskId;
             await _bot.EditMessageText(chatId, msg.MessageId,
-                "📅 *Muddatni kiriting:*\nFormat: `25.12.2025` yoki `25.12.2025 14:00`",
+                "📅 *Muddatni tanlang:*\n_Yoki qo'lda yozing:_ `25.12.2025` / `25.12.2025 14:00`",
                 parseMode: ParseMode.Markdown,
-                replyMarkup: KeyboardBuilder.SkipDueDate(),
+                replyMarkup: KeyboardBuilder.Calendar(DateTime.UtcNow),
                 cancellationToken: ct);
             return;
         }
@@ -458,6 +458,81 @@ public class BotService
         {
             ResetState(userId, chatId);
             await EditToMainMenu(chatId, msg.MessageId, ct);
+            return;
+        }
+
+        // Calendar navigation
+        if (data == "cal_noop") return;
+
+        if (data.StartsWith("calprev_") || data.StartsWith("calnext_"))
+        {
+            var monthStr = data[8..]; // yyyy-MM
+            if (DateTime.TryParseExact(monthStr, "yyyy-MM", CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var calMonth))
+            {
+                await _bot.EditMessageReplyMarkup(chatId, msg.MessageId,
+                    replyMarkup: KeyboardBuilder.Calendar(calMonth),
+                    cancellationToken: ct);
+            }
+            return;
+        }
+
+        if (data.StartsWith("calpick_"))
+        {
+            var dateStr = data[8..]; // yyyy-MM-dd
+            if (DateTime.TryParseExact(dateStr, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var pickedDate))
+            {
+                await _bot.EditMessageText(chatId, msg.MessageId,
+                    $"📅 *Sana:* `{pickedDate:dd.MM.yyyy}`\n\n🕐 *Vaqtni tanlang:*",
+                    parseMode: ParseMode.Markdown,
+                    replyMarkup: KeyboardBuilder.TimePicker(dateStr),
+                    cancellationToken: ct);
+            }
+            return;
+        }
+
+        if (data.StartsWith("caltime_"))
+        {
+            // caltime_yyyy-MM-dd_HHMM or caltime_yyyy-MM-dd_none
+            var payload = data[8..];
+            var lastUnderscore = payload.LastIndexOf('_');
+            var dateStr = payload[..lastUnderscore];
+            var timeStr = payload[(lastUnderscore + 1)..];
+
+            if (DateTime.TryParseExact(dateStr, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var finalDate))
+            {
+                if (timeStr != "none")
+                {
+                    var hour = int.Parse(timeStr[..2]);
+                    var minute = int.Parse(timeStr[2..]);
+                    finalDate = finalDate.AddHours(hour).AddMinutes(minute);
+                }
+
+                var state = GetState(userId, chatId);
+                if (state.EditingTaskId.HasValue)
+                {
+                    using var db = new AppDbContext();
+                    var task = await db.Todos.FindAsync(new object[] { state.EditingTaskId.Value }, ct);
+                    if (task != null)
+                    {
+                        task.DueDate = finalDate;
+                        await db.SaveChangesAsync(ct);
+                    }
+                }
+
+                ResetState(userId, chatId);
+                var dateDisplay = timeStr == "none"
+                    ? finalDate.ToString("dd.MM.yyyy")
+                    : finalDate.ToString("dd.MM.yyyy HH:mm");
+
+                await _bot.EditMessageText(chatId, msg.MessageId,
+                    $"✅ Muddat belgilandi: *{dateDisplay}*",
+                    parseMode: ParseMode.Markdown,
+                    replyMarkup: KeyboardBuilder.BackToMenu(),
+                    cancellationToken: ct);
+            }
             return;
         }
 
@@ -569,9 +644,9 @@ public class BotService
             state.State = BotState.WaitingForDueDate;
             state.EditingTaskId = taskId;
             await _bot.SendMessage(chatId,
-                "📅 *Muddatni kiriting:*\nFormat: `25.12.2025` yoki `25.12.2025 14:00`",
+                "📅 *Muddatni tanlang:*\n_Yoki qo'lda yozing:_ `25.12.2025` / `25.12.2025 14:00`",
                 parseMode: ParseMode.Markdown,
-                replyMarkup: KeyboardBuilder.SkipDueDate(),
+                replyMarkup: KeyboardBuilder.Calendar(DateTime.UtcNow),
                 cancellationToken: ct);
             return;
         }
@@ -651,9 +726,9 @@ public class BotService
         else
         {
             await _bot.SendMessage(chatId,
-                "❌ Noto'g'ri format. Iltimos, `25.12.2025` yoki `25.12.2025 14:00` formatida kiriting.",
+                "❌ Noto'g'ri format\\. Kalendardan tanlang yoki `25.12.2025` formatida yozing\\.",
                 parseMode: ParseMode.Markdown,
-                replyMarkup: KeyboardBuilder.SkipDueDate(),
+                replyMarkup: KeyboardBuilder.Calendar(DateTime.UtcNow),
                 cancellationToken: ct);
         }
     }
